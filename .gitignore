@@ -1,0 +1,19 @@
+# SQLite Database
+*.db
+*.db-journal
+*.sqlite3
+
+# Python Caches & Virtual Environments
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+ENV/
+.env
+
+# System Files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
