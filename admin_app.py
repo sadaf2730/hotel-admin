@@ -6,14 +6,24 @@ from functools import wraps
 import os
 
 app = Flask(__name__)
-app.secret_key = "hotel-admin-secure-session-key-random"
+# Use a secret from environment in production; fallback kept for local dev
+app.secret_key = os.getenv("SECRET_KEY", "hotel-admin-secure-session-key-random")
 
 # ---------- DB CONNECTION ----------
 def get_conn():
+    """Return a DB connection.
+
+    By default uses SQLite (file path from `DATABASE_PATH`). When running under
+    a WSGI server like Gunicorn we allow multi-thread access by setting
+    `check_same_thread=False`.
+    """
     db_path = os.getenv("DATABASE_PATH", "hotel_booking_system.db")
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
+    try:
+        conn.execute("PRAGMA foreign_keys = ON")
+    except Exception:
+        pass
     return conn
 
 # ---------- DATABASE MIGRATION & ADMIN SEEDING ----------
