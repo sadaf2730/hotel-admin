@@ -26,8 +26,96 @@ def get_conn():
         pass
     return conn
 
+# ---------- INITIALIZE DATABASE ----------
+def init_db():
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+      CREATE TABLE IF NOT EXISTS users (
+        user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE,
+        email TEXT UNIQUE,
+        password TEXT,
+        is_admin INTEGER DEFAULT 0
+      )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS rooms (
+            room_no INTEGER PRIMARY KEY,
+            floor INTEGER,
+            room_type TEXT,
+            is_booked INTEGER DEFAULT 0,
+            rate_per_day INTEGER DEFAULT 1000
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS customers (
+            customer_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            phone TEXT,
+            aadhaar TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS bookings (
+            booking_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER,
+            room_no INTEGER,
+            checkin_date TEXT,
+            days INTEGER,
+            expected_checkout_date TEXT,
+            checked_out INTEGER DEFAULT 0,
+            total_amount INTEGER,
+            num_persons INTEGER,
+            arrival_date TEXT,
+            market_segment_type TEXT,
+            no_of_weekend_nights INTEGER,
+            no_of_week_nights INTEGER,
+            lead_time INTEGER,
+            booking_status TEXT DEFAULT 'NotCanceled',
+            FOREIGN KEY(customer_id) REFERENCES customers(customer_id),
+            FOREIGN KEY(room_no) REFERENCES rooms(room_no)
+        )
+    """)
+
+    # Seed default rooms if the inventory is empty.
+    cur.execute("SELECT COUNT(*) FROM rooms")
+    if cur.fetchone()[0] == 0:
+        insert_list = []
+        for floor in range(1, 5):
+            deluxe_count = 0
+            for num in range(1, 11):
+                room_no = floor * 100 + num
+                if deluxe_count < 2:
+                    room_type = "Deluxe"
+                    price = 2500
+                    deluxe_count += 1
+                else:
+                    if num % 2 == 0:
+                        room_type = "Double"
+                        price = 1500
+                    else:
+                        room_type = "Single"
+                        price = 1000
+                insert_list.append((room_no, floor, room_type, 0, price))
+
+        cur.executemany(
+            "INSERT INTO rooms (room_no, floor, room_type, is_booked, rate_per_day) VALUES (?,?,?,?,?)",
+            insert_list
+        )
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
 # ---------- DATABASE MIGRATION & ADMIN SEEDING ----------
 def run_migrations_and_seed():
+    init_db()
     conn = get_conn()
     cur = conn.cursor()
 
